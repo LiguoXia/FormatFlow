@@ -1,0 +1,85 @@
+{
+  "name": "formatflow",
+  "version": "1.2.0",
+  "private": true,
+  "description": "A local-first desktop text toolkit",
+  "author": "FormatFlow",
+  "license": "MIT",
+  "type": "module",
+  "main": "electron/main.cjs",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "desktop": "node scripts/dev.mjs",
+    "build": "tsc --noEmit && vite build && node scripts/notices.mjs",
+    "test": "vitest run",
+    "test:desktop": "node scripts/smoke.mjs",
+    "test:text": "node scripts/text-smoke.mjs",
+    "test:ui": "node scripts/ui-smoke.mjs",
+    "test:portable": "node scripts/portable-smoke.mjs",
+    "test:performance": "node scripts/performance.mjs",
+    "dist": "npm run build && electron-builder --win portable --x64",
+    "start": "electron ."
+  },
+  "dependencies": {
+    "@codemirror/commands": "^6.8.1",
+    "@codemirror/lang-json": "^6.0.2",
+    "@codemirror/lang-sql": "^6.10.0",
+    "@codemirror/lang-yaml": "^6.1.2",
+    "@codemirror/language": "^6.11.0",
+    "@codemirror/legacy-modes": "^6.5.0",
+    "@codemirror/lint": "^6.8.5",
+    "@codemirror/search": "^6.5.10",
+    "@codemirror/state": "^6.5.2",
+    "@codemirror/view": "^6.36.5",
+    "@lezer/highlight": "^1.2.1",
+    "jsonc-parser": "^3.3.1",
+    "lucide-react": "^0.468.0",
+    "luxon": "^3.6.1",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "sql-formatter": "^15.6.6",
+    "yaml": "^2.8.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.55.0",
+    "@types/luxon": "^3.6.2",
+    "@types/node": "^22.15.0",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "@vitejs/plugin-react": "^4.4.1",
+    "electron": "^40.0.0",
+    "electron-builder": "^26.0.12",
+    "typescript": "^5.8.3",
+    "vite": "^6.3.5",
+    "vitest": "^3.2.0"
+  },
+  "build": {
+    "appId": "com.formatflow.desktop",
+    "productName": "FormatFlow",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "build/icon.ico",
+      "package.json",
+      "!node_modules/**/*"
+    ],
+    "extraFiles": [
+      "THIRD_PARTY_NOTICES.md",
+      "README.md"
+    ],
+    "asar": true,
+    "win": {
+      "target": [
+        "portable"
+      ],
+      "icon": "build/icon.ico",
+      "signAndEditExecutable": true
+    },
+    "portable": {
+      "artifactName": "FormatFlow-${version}-win-x64.exe"
+    }
+  }
+}
