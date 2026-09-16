@@ -2,7 +2,8 @@ import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 're
 import { Compartment, Annotation, EditorState } from '@codemirror/state';
 import { EditorView, lineNumbers, highlightActiveLine, highlightActiveLineGutter, drawSelection, keymap, rectangularSelection, crosshairCursor } from '@codemirror/view';
 import { defaultKeymap, history, historyKeymap, indentWithTab, redo, isolateHistory } from '@codemirror/commands';
-import { bracketMatching, foldGutter, foldKeymap, HighlightStyle, syntaxHighlighting, indentUnit } from '@codemirror/language';
+import { bracketMatching, foldGutter, foldKeymap, HighlightStyle, syntaxHighlighting, indentUnit, StreamLanguage, indentOnInput } from '@codemirror/language';
+import { java as javaMode } from '@codemirror/legacy-modes/mode/clike';
 import { searchKeymap, highlightSelectionMatches } from '@codemirror/search';
 import { setDiagnostics } from '@codemirror/lint';
 import { tags } from '@lezer/highlight';
@@ -48,9 +49,10 @@ const editorTheme = EditorView.theme({
   '&.cm-focused .cm-matchingBracket': { background: 'var(--accent-soft)', outline: '1px solid var(--accent)' },
   '.cm-diagnostic-error': { borderLeftColor: 'var(--danger)' },
 });
-export type EditorLanguage = 'text' | 'json' | 'mysql' | 'postgresql' | 'plsql' | 'transactsql' | 'properties' | 'yaml';
+export type EditorLanguage = 'text' | 'java' | 'json' | 'mysql' | 'postgresql' | 'plsql' | 'transactsql' | 'properties' | 'yaml';
 function languageSupport(language: EditorLanguage) {
   if (language === 'text') return [];
+  if (language === 'java') return StreamLanguage.define(javaMode);
   if (language === 'json') return json();
   if (language === 'yaml') return [yaml(), yamlScalars];
   if (language === 'properties') return propertiesLanguage;
@@ -65,7 +67,7 @@ const Editor = forwardRef<EditorHandle, Props>(function Editor({value, onChange,
   const host = useRef<HTMLDivElement>(null);
   const view = useRef<EditorView | null>(null);
   const options = useRef({onChange, onPrimary}); options.current = {onChange, onPrimary};
-  const compartments = useRef({language: new Compartment(), indent: new Compartment()});
+  const compartments = useRef({language: new Compartment(), indent: new Compartment(), readOnly: new Compartment()});
   const [stats, setStats] = useState(() => ({lines: value.split('\n').length, length: value.length, line: 1, column: 1, selected: 0}));
   useImperativeHandle(ref, () => ({focusAt(offset) {
     const editor = view.current; if (!editor) return;
@@ -74,10 +76,10 @@ const Editor = forwardRef<EditorHandle, Props>(function Editor({value, onChange,
   }}), []);
   useEffect(() => {
     const instance = new EditorView({parent: host.current!, state: EditorState.create({doc: value, extensions: [
-      lineNumbers(), history(), drawSelection(), rectangularSelection(), crosshairCursor(),
+      lineNumbers(), history(), drawSelection(), rectangularSelection(), crosshairCursor(), indentOnInput(),
       highlightActiveLine(), highlightActiveLineGutter(), bracketMatching(), foldGutter(), highlightSelectionMatches(),
       compartments.current.language.of(languageSupport(language)), compartments.current.indent.of(indentUnit.of(' '.repeat(indent))),
-      syntaxHighlighting(palette), editorTheme, EditorState.readOnly.of(readOnly),
+      syntaxHighlighting(palette), editorTheme, compartments.current.readOnly.of(EditorState.readOnly.of(readOnly)),
       EditorView.contentAttributes.of({'aria-label': label, spellcheck: 'false'}),
       EditorView.editorAttributes.of((view) => ({'data-has-selection': String(view.state.selection.ranges.some((range) => !range.empty))})),
       keymap.of([{key: 'Mod-Enter', run: () => { options.current.onPrimary?.(); return true; }}, {key: 'Mod-y', run: redo}, indentWithTab, ...defaultKeymap, ...historyKeymap, ...searchKeymap, ...foldKeymap]),
@@ -99,6 +101,7 @@ const Editor = forwardRef<EditorHandle, Props>(function Editor({value, onChange,
   }, [value]);
   useEffect(() => { view.current?.dispatch({effects: compartments.current.language.reconfigure(languageSupport(language))}); }, [language]);
   useEffect(() => { view.current?.dispatch({effects: compartments.current.indent.reconfigure(indentUnit.of(' '.repeat(indent)))}); }, [indent]);
+  useEffect(() => { view.current?.dispatch({effects: compartments.current.readOnly.reconfigure(EditorState.readOnly.of(readOnly))}); }, [readOnly]);
   useEffect(() => {
     const editor = view.current; if (!editor) return;
     const offset = Math.min(error?.offset ?? 0, editor.state.doc.length);

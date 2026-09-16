@@ -120,7 +120,7 @@ try {
       });
       expect(overflowing).toEqual([]);
     }
-    await expect(page.getByRole('navigation').getByRole('button')).toHaveCount(5);
+    await expect(page.getByRole('navigation').getByRole('button')).toHaveCount(6);
     const nav=await page.getByRole('navigation').boundingBox();
     const sidebar=await page.locator('.sidebar').boundingBox();
     expect(nav.y+nav.height).toBeLessThan(sidebar.y+sidebar.height);

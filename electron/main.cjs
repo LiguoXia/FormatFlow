@@ -1,5 +1,6 @@
 const { app, BrowserWindow, ipcMain, Menu, clipboard, session } = require('electron');
 const path = require('node:path');
+const { installCustom } = require('./custom/ipc.cjs');
 let mainWindow;
 const devUrl = !app.isPackaged && process.env.FORMATFLOW_DEV_URL;
 const validSender = (event) => event.sender === mainWindow?.webContents && event.senderFrame === mainWindow.webContents.mainFrame;
@@ -13,8 +14,12 @@ function createWindow() {
   Menu.setApplicationMenu(null);
   mainWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   mainWindow.webContents.on('will-navigate', (event) => event.preventDefault());
-  const emitState = () => mainWindow?.webContents.send('window:state', { maximized: mainWindow.isMaximized(), fullscreen: mainWindow.isFullScreen() });
-  for (const event of ['maximize', 'unmaximize', 'enter-full-screen', 'leave-full-screen']) mainWindow.on(event, emitState);
+  // On Windows these events may fire before isFullScreen()/isMaximized() updates.
+  const emitState = (overrides = {}) => mainWindow?.webContents.send('window:state', { maximized: mainWindow.isMaximized(), fullscreen: mainWindow.isFullScreen(), ...overrides });
+  mainWindow.on('maximize', () => emitState({maximized: true}));
+  mainWindow.on('unmaximize', () => emitState({maximized: false}));
+  mainWindow.on('enter-full-screen', () => emitState({fullscreen: true}));
+  mainWindow.on('leave-full-screen', () => emitState({fullscreen: false}));
   mainWindow.once('ready-to-show', () => mainWindow.show());
   if (devUrl) mainWindow.loadURL(devUrl); else mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
 }
@@ -38,6 +43,7 @@ else {
     ipcMain.handle('window:state', (event) => validSender(event) ? ({ maximized: mainWindow.isMaximized(), fullscreen: mainWindow.isFullScreen() }) : null);
     ipcMain.handle('clipboard:read', (event) => validSender(event) ? clipboard.readText() : '');
     ipcMain.handle('clipboard:write', (event, text) => { if (validSender(event) && typeof text === 'string') clipboard.writeText(text); });
+    installCustom({app, ipcMain, validSender, getWindow: () => mainWindow});
     createWindow();
   });
   app.on('window-all-closed', () => app.quit());

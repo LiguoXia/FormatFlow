@@ -1,12 +1,14 @@
 # FormatFlow
 
-面向 Windows 的本地文本处理工作台。参考 Apple Human Interface Guidelines 重构界面，采用紧凑侧栏与双栏编辑布局，支持浅色、深色及跟随系统外观，包含 JSON、SQL、时间戳、Properties / YAML、文本处理五个工具。无需账户，不使用远端文本处理服务，不自动保存输入内容。
+面向 Windows 的本地文本处理工作台。参考 Apple Human Interface Guidelines 重构界面，采用紧凑侧栏与双栏编辑布局，支持浅色、深色及跟随系统外观，包含五个内置工具和自定义 Java 文本处理扩展。无需账户，不使用远端文本处理服务，不自动保存输入内容；自定义功能代码和缩进设置会保存到用户配置目录。
 
 ## 直接运行
 
-从 [GitHub 最新发行版](https://github.com/LiguoXia/FormatFlow/releases/latest) 下载 Windows x64 便携版，或直接下载 [1.2.0 EXE](https://github.com/LiguoXia/FormatFlow/releases/download/v1.2.0/FormatFlow-1.2.0-win-x64.exe)。发行页同时提供 SHA-256 校验文件和验收记录。
+从 [GitHub 最新发行版](https://github.com/LiguoXia/FormatFlow/releases/latest) 下载 Windows x64 便携版，或直接下载 [1.3.0 EXE](https://github.com/LiguoXia/FormatFlow/releases/download/v1.3.0/FormatFlow-1.3.0-win-x64.exe)。发行页同时提供 SHA-256 校验文件、使用说明和验收记录。
 
-双击 `release/FormatFlow-1.2.0-win-x64.exe`，无需安装 Node.js 或其他运行时。旧版便携 EXE 仍保留在 release 目录，日常使用请打开 1.2.0。
+本地运行：双击 `release/FormatFlow-1.3.0-win-x64.exe`。旧版便携 EXE 保留。
+
+内置工具无需额外运行时；自定义 Java 扩展调用系统安装的完整 JDK 8–23（推荐 JDK 21），应用不附带 JDK。没有 JDK 时会显示教程，不影响内置工具。完整说明见 [自定义处理使用指南](docs/CUSTOM-PROCESSORS.md)。
 
 - 面向 Windows 10 / Windows 11 x64；本次实际桌面验证环境为 Windows 11 x64。
 - 这是免安装便携包，首次启动会将内置运行文件解压到系统临时目录。`release/win-unpacked/FormatFlow.exe` 可直接启动；移动这一版本时须保留整个 `win-unpacked` 文件夹。
@@ -15,6 +17,17 @@
 - 关闭窗口会退出应用；未保存的文本随之清除。不会隐藏到托盘继续保留文本。
 
 ## 功能
+
+### 1.3 自定义处理扩展
+
+- 新增「自定义处理」（Ctrl + 6），填写名称及 Java 静态方法即可保存、测试和执行。
+- Java 编辑器支持语法高亮、行号、自动缩进、编译错误位置；支持删除、原生对话框导入导出、外部配置重新加载。
+- 独立 Java 进程，首次编译后缓存 class；执行 5 秒超时、取消、内存限制及受限权限检查。
+- 配置在 `%APPDATA%\FormatFlow\config`，缓存在 `%LOCALAPPDATA%\FormatFlow\processors`；升级不覆盖用户文件，修改前保留 `.bak`。
+- JSON、SQL 和 Java 缩进分别保存到 `settings.json`，下次启动恢复。
+- 修复 Windows 全屏事件与图标状态不同步；进入箭头向外，退出箭头向内。
+
+![自定义 Java 功能编辑](docs/custom-editor.png)
 
 ### 1.2 界面更新
 
@@ -46,7 +59,7 @@
 | 操作 | 快捷键 |
 | --- | --- |
 | 格式化 / 配置转换 | Ctrl + Enter |
-| 切换五个工具 | Ctrl + 1 / 2 / 3 / 4 / 5 |
+| 切换工具 | Ctrl + 1 / 2 / 3 / 4 / 5 / 6 |
 | 全屏 / 退出全屏 | F11 / Esc |
 | 查找 / 替换 | Ctrl + F / Ctrl + H |
 | 撤销 / 重做 | Ctrl + Z / Ctrl + Y；也支持 Ctrl + Shift + Z |
@@ -116,6 +129,9 @@ npm test              # 核心转换与数据边界测试
 npm run test:desktop  # 对构建后的真实 Electron 窗口做端到端测试
 npm run test:text     # 文本处理、鼠标/键盘选择与末行高亮回归
 npm run test:ui       # 深浅色、系统外观、布局、焦点、对比度与选区回归
+npm run test:custom   # 真实系统 JDK：编译、缓存、隔离、超时、配置与导入事务
+npm run test:custom-desktop # 自定义功能端到端与缩进、全屏回归
+node scripts/custom-no-jdk.mjs # 无 JDK 时的降级与教程
 npm run test:portable # 验证当前版本的单 EXE 解压启动
 npm run test:performance # 1 MB / 10 MB JSON 与 SQL 性能测试
 npm run dist          # 生成 Windows x64 便携 EXE
@@ -138,7 +154,8 @@ Remove-Item Env:FORMATFLOW_TEST_EXE
 ```text
 electron/                 原生窗口、受限 IPC、剪贴板、网络限制
 src/components/           共享编辑器、面板、树视图、分隔线、提示
-src/pages/                五个独立工具页面
+src/pages/                五个内置工具页面和自定义处理页面
+electron/custom/          Java 引擎、受限执行与配置管理
 src/core/                 不依赖 UI 的文本处理逻辑
 src/workers/              本地后台处理线程
 src/lib/                  Worker 调用、剪贴板、示例数据
@@ -160,7 +177,7 @@ Electron + React + TypeScript + Vite + CodeMirror 6。核心库为 jsonc-parser�
 - 不启用 Node renderer integration；启用 context isolation 和 renderer sandbox。
 - preload 仅暴露固定窗口操作和文本剪贴板 API，并校验 IPC 来源。
 - 生产应用阻止外部网络请求、新窗口与页面导航；没有遥测、更新检查或外部字体。
-- 不将输入文本写入历史、收藏、localStorage 或数据库。仅将外观偏好保存到 localStorage。常规 Chromium 运行文件仍可能位于系统应用数据/临时目录中。
+- 不将输入文本写入历史、收藏、localStorage 或数据库。外观偏好保存到 localStorage；自定义功能代码、元数据、缩进设置及编译缓存保存到用户数据目录。常规 Chromium 运行文件仍可能位于系统应用数据/临时目录中。
 
 实现参考：[Electron 安全指南](https://www.electronjs.org/docs/latest/tutorial/security)、[CodeMirror 文档](https://codemirror.net/docs/)、[SQL Formatter](https://github.com/sql-formatter-org/sql-formatter)。交互参考来自需求中的 [JSON 编辑器](https://www.json.cn/jsonedit/) 与 [时间戳转换](https://tool.lu/timestamp/)。
 

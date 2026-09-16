@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { ArrowLeftRight, Braces, Clock3, Code2, Database, Expand, Keyboard, LockKeyhole, Maximize2, Minus, PanelsTopLeft, Shrink, Square, TextCursorInput, X } from 'lucide-react';
+import { ArrowLeftRight, Braces, Clock3, Code2, Database, Keyboard, LockKeyhole, Maximize2, Minus, PanelsTopLeft, Square, TextCursorInput, X } from 'lucide-react';
 import JsonPage from './pages/JsonPage';
 import SqlPage from './pages/SqlPage';
 import TimestampPage from './pages/TimestampPage';
 import ConfigPage from './pages/ConfigPage';
 import TextPage from './pages/TextPage';
+import CustomPage from './pages/CustomPage';
 import AppearanceControl from './components/AppearanceControl';
 import { appVersion } from './lib/version';
 import { Toast } from './components/common';
@@ -14,7 +15,8 @@ const navigation = [
   {id: 'sql', label: 'SQL', sub: '查询格式化', icon: Database},
   {id: 'timestamp', label: '时间戳', sub: '日期与时间转换', icon: Clock3},
   {id: 'config', label: 'Properties / YAML', sub: '配置格式转换', icon: ArrowLeftRight},
-  {id: 'text', label: '文本处理', sub: '压缩、转换与整理', icon: TextCursorInput}
+  {id: 'text', label: '文本处理', sub: '压缩、转换与整理', icon: TextCursorInput},
+  {id: 'custom', label: '自定义处理', sub: 'Java 文本处理扩展', icon: Code2}
 ] as const;
 type Tool = typeof navigation[number]['id'];
 
@@ -34,7 +36,7 @@ function ShortcutGuide({onClose}: {onClose(): void}) {
     <div className="help-title"><span className="card-icon"><Keyboard size={23} /></span><button className="icon-button" aria-label="关闭快捷键指南" autoFocus onClick={onClose}><X size={18} /></button></div>
     <h2 id="help-heading">快捷键指南</h2><p>让常用操作，更顺手。</p>
     {[
-      ['格式化 / 转换', 'Ctrl + Enter'], ['切换工具', 'Ctrl + 1 / 2 / 3 / 4 / 5'],
+      ['格式化 / 转换', 'Ctrl + Enter'], ['切换工具', 'Ctrl + 1 / 2 / 3 / 4 / 5 / 6'],
       ['查找 / 替换', 'Ctrl + F / Ctrl + H'], ['撤销 / 重做', 'Ctrl + Z / Ctrl + Y'],
       ['全选 / 复制 / 粘贴 / 剪切', 'Ctrl + A / C / V / X'], ['全屏 / 退出全屏', 'F11 / Esc'], ['快捷键指南', 'Ctrl + /']
     ].map(([label, keys]) => <div className="shortcut-row" key={label}><span>{label}</span><kbd>{keys}</kbd></div>)}
@@ -71,7 +73,7 @@ export default function App() {
       }
       if (event.ctrlKey && event.key === '/') { event.preventDefault(); setHelp((value) => !value); return; }
       if (help) return;
-      if ((event.ctrlKey || event.metaKey) && /^[1-5]$/.test(event.key)) {
+      if ((event.ctrlKey || event.metaKey) && /^[1-6]$/.test(event.key)) {
         event.preventDefault(); changeTool(navigation[Number(event.key) - 1].id);
       }
       if (event.key === 'F11' && !event.repeat) { event.preventDefault(); void fullscreen(); }
@@ -80,14 +82,14 @@ export default function App() {
     return () => document.removeEventListener('keydown', onKey);
   }, [changeTool, fullscreen, help]);
   const current = navigation.find((item) => item.id === active)!;
-  const pages = {json: <JsonPage notify={notify} />, sql: <SqlPage notify={notify} />, timestamp: <TimestampPage notify={notify} />, config: <ConfigPage notify={notify} />, text: <TextPage notify={notify} />};
+  const pages = {json: <JsonPage notify={notify} />, sql: <SqlPage notify={notify} />, timestamp: <TimestampPage notify={notify} />, config: <ConfigPage notify={notify} />, text: <TextPage notify={notify} />, custom: <CustomPage notify={notify} />};
 
   return <div className={`app ${windowState.fullscreen ? 'is-fullscreen' : ''}`}>
     <div className="titlebar">
       <div className="titlebar-brand"><Code2 size={16} /><span>FormatFlow</span></div>
       <span className="titlebar-caption">{current.label}</span>
       <div className="window-controls">
-        <button aria-label="切换全屏" title="全屏 F11 · Esc 退出" onClick={fullscreen}>{windowState.fullscreen ? <Shrink size={14} /> : <Expand size={14} />}</button>
+        <button aria-label="切换全屏" aria-pressed={windowState.fullscreen} title={windowState.fullscreen ? '退出全屏 · Esc / F11' : '进入全屏 · F11'} onClick={fullscreen}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" data-direction={windowState.fullscreen?'inward':'outward'}>{windowState.fullscreen?<><path d="M3 3l6 6M9 3v6H3"/><path d="M21 21l-6-6M15 21v-6h6"/></>:<><path d="M9 9L3 3M3 9V3h6"/><path d="M15 15l6 6M21 15v6h-6"/></>}</svg></button>
         {window.desktop && <>
           <button aria-label="最小化" title="最小化" onClick={() => window.desktop!.windowAction('minimize')}><Minus size={15} /></button>
           <button aria-label="最大化或还原" title="最大化或还原" onClick={() => window.desktop!.windowAction('maximize')}>{windowState.maximized ? <PanelsTopLeft size={13} /> : <Square size={12} />}</button>
