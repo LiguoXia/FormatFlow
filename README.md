@@ -4,9 +4,9 @@
 
 ## 直接运行
 
-从 [GitHub 最新发行版](https://github.com/LiguoXia/FormatFlow/releases/latest) 下载 Windows x64 便携版，或直接下载 [1.3.0 EXE](https://github.com/LiguoXia/FormatFlow/releases/download/v1.3.0/FormatFlow-1.3.0-win-x64.exe)。发行页同时提供 SHA-256 校验文件、使用说明和验收记录。
+从 [GitHub 最新发行版](https://github.com/LiguoXia/FormatFlow/releases/latest) 下载 Windows x64 便携版，或直接下载 [1.3.1 EXE](https://github.com/LiguoXia/FormatFlow/releases/download/v1.3.1/FormatFlow-1.3.1-win-x64.exe)。发行页同时提供 SHA-256 校验文件、使用说明和验收记录。
 
-本地运行：双击 `release/FormatFlow-1.3.0-win-x64.exe`。旧版便携 EXE 保留。
+本地运行：双击 `release/FormatFlow-1.3.1-win-x64.exe`。旧版便携 EXE 保留。
 
 内置工具无需额外运行时；自定义 Java 扩展调用系统安装的完整 JDK 8–23（推荐 JDK 21），应用不附带 JDK。没有 JDK 时会显示教程，不影响内置工具。完整说明见 [自定义处理使用指南](docs/CUSTOM-PROCESSORS.md)。
 
@@ -17,6 +17,13 @@
 - 关闭窗口会退出应用；未保存的文本随之清除。不会隐藏到托盘继续保留文本。
 
 ## 功能
+
+### 1.3.1 自定义处理内容独立保存
+
+- 自定义处理功能分别保留各自的输入文本和处理结果，来回切换时自动恢复。
+- 新建、保存、删除及重新加载列表不会覆盖其他功能的输入与结果。
+- 文本仅在本次运行期间保留，关闭应用后清除，不写入磁盘。
+- Windows 便携版：`FormatFlow-1.3.1-win-x64.exe`。
 
 ### 1.3 自定义处理扩展
 

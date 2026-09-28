@@ -14,8 +14,16 @@ export default function CustomPage({notify}: {notify: Notify}) {
   const [selected,setSelected]=useState('');
   const [dirty,setDirty]=useState(false);
   const [mode,setMode]=useState<'process'|'edit'>('process');
-  const [input,setInput]=useState('hello world');
-  const [result,setResult]=useState<CustomResult|null>(null);
+  const [sessions,setSessions]=useState<Record<string,{input:string;result:CustomResult|null}>>({});
+  const session=sessions[draft.id];
+  const input=session?.input ?? 'hello world';
+  const result=session?.result ?? null;
+  function updateSession(patch:Partial<{input:string;result:CustomResult|null}>){
+    const id=draft.id;
+    setSessions(current=>({...current,[id]:{...(current[id] ?? {input:'hello world',result:null}),...patch}}));
+  }
+  function setInput(value:string){updateSession({input:value});}
+  function setResult(value:CustomResult|null){updateSession({result:value});}
   const [environment,setEnvironment]=useState<CustomEnvironment|null>(null);
   const [error,setError]=useState<ToolError|null>(null);
   const [codeError,setCodeError]=useState<ToolError|null>(null);
@@ -34,7 +42,7 @@ export default function CustomPage({notify}: {notify: Notify}) {
     if(!api)return;
     const list=await api.list();setItems(list);
     if(!keep && list.length){setDraft(list[0]);setSelected(list[0].id);setDirty(false);}
-    if(keep && !dirty && selected){const next=list.find(item=>item.id===selected);setDraft(next || createProcessor());setSelected(next?.id || '');setResult(null);}
+    if(keep && !dirty && selected){const next=list.find(item=>item.id===selected);setDraft(next || createProcessor());setSelected(next?.id || '');}
   }
   async function detect() {
     if(!api)return;
@@ -44,7 +52,8 @@ export default function CustomPage({notify}: {notify: Notify}) {
   useEffect(()=>{if(!api||initialized.current)return;initialized.current=true;load(false).catch(e=>setError({message:e.message}));void detect();},[]);
   function choose(id:string) {
     const item=items.find(item=>item.id===id);
-    setDraft(item || createProcessor());setSelected(item?.id || '');setDirty(!item);setCodeError(null);setError(null);setResult(null);
+    if(!selected)setSessions(current=>{const next={...current};delete next[draft.id];return next;});
+    setDraft(item || createProcessor());setSelected(item?.id || '');setDirty(!item);setCodeError(null);setError(null);
     if(!item)setMode('edit');
   }
   function switchItem(id:string){if(busy)return;if(dirty)setPending({kind:'switch',id});else choose(id);}
@@ -74,7 +83,7 @@ export default function CustomPage({notify}: {notify: Notify}) {
   }
   async function remove(){
     if(!api)return;setPending(null);setBusy('删除功能');
-    try{await api.remove(selected);setItems(items.filter(item=>item.id!==selected));setSelected('');setDraft(createProcessor());setDirty(false);setResult(null);notify('已删除功能和编译缓存');}catch(e){setError({message:(e as Error).message});}finally{setBusy('');}
+    try{await api.remove(selected);setItems(items.filter(item=>item.id!==selected));setSessions(current=>{const next={...current};delete next[selected];return next;});setSelected('');setDraft(createProcessor());setDirty(false);notify('已删除功能和编译缓存');}catch(e){setError({message:(e as Error).message});}finally{setBusy('');}
   }
   async function transfer(action:'import'|'export'){
     if(!api)return;setBusy(action==='import'?'校验并导入':'导出配置');setError(null);
@@ -90,7 +99,7 @@ export default function CustomPage({notify}: {notify: Notify}) {
     <ErrorBanner error={error || (settingsError?{message:settingsError}:null)} onLocate={codeError?.offset!==undefined?()=>editor.current?.focusAt(codeError.offset!):undefined}/>
     <div className="custom-workspace">
       <aside className="processor-list" aria-label="我的文本处理"><div className="processor-list-heading">我的文本处理 <span>{items.length}</span></div>{items.length ? items.map(item=><button key={item.id} className={`processor-item ${selected===item.id?'selected':''}`} aria-pressed={selected===item.id} disabled={!!busy} onClick={()=>switchItem(item.id)}><Code2 size={15}/><span><strong>{item.name}</strong><small>{item.description || `${item.className}.${item.methodName}`}</small></span></button>):<p className="processor-empty">还没有自定义功能。<br/>点击「新增功能」开始。</p>}</aside>
-      <section className="custom-content">
+      <section key={draft.id} className="custom-content">
         <div className="custom-content-heading"><div className="segmented" role="group" aria-label="自定义处理视图"><button className={mode==='process'?'active':''} aria-pressed={mode==='process'} onClick={()=>setMode('process')}>处理文本</button><button className={mode==='edit'?'active':''} aria-pressed={mode==='edit'} onClick={()=>setMode('edit')}>编辑功能{dirty?' · 未保存':''}</button></div><span className="custom-selection-name">{draft.name || '新功能'}</span></div>
         {mode==='edit' ? <>
           <fieldset className="processor-fields" disabled={!!busy}><label>功能名称<input aria-label="功能名称" maxLength={100} placeholder="例如：全部转大写" value={draft.name} onChange={e=>edit({name:e.target.value})}/></label><label>功能描述<input aria-label="功能描述" maxLength={1000} placeholder="这个功能的用途" value={draft.description} onChange={e=>edit({description:e.target.value})}/></label><label>Java 类名<input aria-label="Java 类名" value={draft.className} onChange={e=>edit({className:e.target.value})}/></label><label>静态方法名<input aria-label="静态方法名" value={draft.methodName} onChange={e=>edit({methodName:e.target.value})}/></label></fieldset>

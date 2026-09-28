@@ -13,7 +13,7 @@ await new Promise((resolve) => server.close(resolve));
 const env = {...process.env}; delete env.ELECTRON_RUN_AS_NODE;
 const {version} = JSON.parse(await readFile('package.json', 'utf8'));
 const started = Date.now();
-const child = spawn(path.resolve(`release/FormatFlow-${version}-win-x64.exe`), [`--remote-debugging-port=${port}`, '--remote-debugging-address=127.0.0.1'], {env, windowsHide:true, stdio:'ignore'});
+const child = spawn(path.resolve(`release/FormatFlow-${version}-win-x64.exe`), [`--remote-debugging-port=${port}`, '--remote-debugging-address=127.0.0.1', `--user-data-dir=${path.resolve('test-results',`portable-browser-${randomUUID()}`)}`], {env, windowsHide:true, stdio:'ignore'});
 let browser;
 const customId = `portable-smoke-${randomUUID()}`;
 try {

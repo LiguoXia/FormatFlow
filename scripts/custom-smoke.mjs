@@ -4,7 +4,7 @@ import path from 'node:path';
 await mkdir('test-results',{recursive:true});
 const data=await mkdtemp(path.resolve('test-results/custom-desktop-'));
 const env={...process.env,FORMATFLOW_TEST_DATA:data};delete env.ELECTRON_RUN_AS_NODE;
-const app=await electron.launch({args:[process.cwd()],env,timeout:30000});
+const app=await electron.launch({args:[process.cwd(),`--user-data-dir=${path.join(data,'browser')}`],env,timeout:30000});
 const page=await app.firstWindow();
 const checks=[],errors=[];page.on('pageerror',e=>errors.push(e.message));
 async function check(name,fn){await fn();checks.push(name);console.log('PASS '+name);}
