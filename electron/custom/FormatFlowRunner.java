@@ -15,7 +15,9 @@ public final class FormatFlowRunner {
         for (int i = 0; i < value.length(); i++) {
             char c = value.charAt(i);
             if (c == '"' || c == '\\') out.append('\\').append(c);
-            else if (c < 32 || Character.isSurrogate(c)) out.append(String.format("\\u%04x", (int)c));
+            // Keep the protocol ASCII even when a Windows JDK uses the system
+            // console encoding for stdout rather than -Dfile.encoding.
+            else if (c < 32 || c > 126) out.append(String.format("\\u%04x", (int)c));
             else out.append(c);
         }
         return out.append('"').toString();

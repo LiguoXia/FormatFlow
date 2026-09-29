@@ -4,7 +4,7 @@ import { EditorView, lineNumbers, highlightActiveLine, highlightActiveLineGutter
 import { defaultKeymap, history, historyKeymap, indentWithTab, redo, isolateHistory } from '@codemirror/commands';
 import { bracketMatching, foldGutter, foldKeymap, HighlightStyle, syntaxHighlighting, indentUnit, StreamLanguage, indentOnInput } from '@codemirror/language';
 import { java as javaMode } from '@codemirror/legacy-modes/mode/clike';
-import { searchKeymap, highlightSelectionMatches } from '@codemirror/search';
+import { searchKeymap, highlightSelectionMatches, openSearchPanel } from '@codemirror/search';
 import { setDiagnostics } from '@codemirror/lint';
 import { tags } from '@lezer/highlight';
 import { json } from '@codemirror/lang-json';
@@ -14,6 +14,11 @@ import { propertiesLanguage, yamlScalars } from './editorLanguages';
 import type { ToolError } from '../lib/worker';
 
 const external = Annotation.define<boolean>();
+function openReplacePanel(view: EditorView) {
+  openSearchPanel(view);
+  view.dom.querySelector<HTMLInputElement>('.cm-search input[name="replace"]')?.focus();
+  return true;
+}
 const palette = HighlightStyle.define([
   { tag: [tags.propertyName, tags.definition(tags.propertyName), tags.attributeName], color: 'var(--syntax-key)' },
   { tag: [tags.string, tags.attributeValue, tags.content], color: 'var(--syntax-string)' },
@@ -82,7 +87,7 @@ const Editor = forwardRef<EditorHandle, Props>(function Editor({value, onChange,
       syntaxHighlighting(palette), editorTheme, compartments.current.readOnly.of(EditorState.readOnly.of(readOnly)),
       EditorView.contentAttributes.of({'aria-label': label, spellcheck: 'false'}),
       EditorView.editorAttributes.of((view) => ({'data-has-selection': String(view.state.selection.ranges.some((range) => !range.empty))})),
-      keymap.of([{key: 'Mod-Enter', run: () => { options.current.onPrimary?.(); return true; }}, {key: 'Mod-y', run: redo}, indentWithTab, ...defaultKeymap, ...historyKeymap, ...searchKeymap, ...foldKeymap]),
+      keymap.of([{key: 'Mod-Enter', run: () => { options.current.onPrimary?.(); return true; }}, {key: 'Ctrl-h', mac: 'Mod-Alt-f', run: openReplacePanel, scope: 'editor search-panel'}, {key: 'Mod-y', run: redo}, indentWithTab, ...defaultKeymap, ...historyKeymap, ...searchKeymap, ...foldKeymap]),
       EditorView.updateListener.of((update) => {
         if (update.docChanged || update.selectionSet) {
           const pos = update.state.selection.main.head;

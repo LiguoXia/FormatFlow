@@ -46,6 +46,8 @@ try {
     await expect.poll(() => app.evaluate(({clipboard}) => clipboard.readText())).toContain('你好');
     await page.keyboard.press('Meta+f'); await expect(page.locator('.cm-search')).toBeVisible();
     await page.keyboard.press('Escape');
+    await page.keyboard.press('Meta+Alt+f'); await expect(page.locator('.cm-search input[name="replace"]')).toBeFocused();
+    await page.keyboard.press('Escape');
     await page.getByRole('button', {name: '清空', exact: true}).click();
     await field('JSON 编辑器').click(); await page.keyboard.press('Meta+z');
     await expect(field('JSON 编辑器')).toContainText('你好');

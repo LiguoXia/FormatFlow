@@ -20,6 +20,17 @@ try {
     const p=record('return input.toUpperCase(java.util.Locale.ROOT);');
     const first=await execute(p),second=await execute(p);assert.equal(first.text,'HELLO 你好 👋');assert.equal(first.cached,false);assert.equal(second.cached,true);
   });
+  await check('Java protocol preserves Unicode with ASCII stdout',async()=>{
+    const original=manager.process;
+    manager.process=async function(executable,args,...rest){
+      const protocol=args.includes('FormatFlowRunner');
+      const result=await original.call(this,executable,protocol?['-Dstdout.encoding=US-ASCII','-Dsun.stdout.encoding=US-ASCII',...args]:args,...rest);
+      if(protocol)assert.match(result.stdout,/^[\x00-\x7f]*$/);
+      return result;
+    };
+    try { assert.equal((await execute(record('return input;'))).text,'hello 你好 👋'); }
+    finally { manager.process=original; }
+  });
   await check('Method-only source, rename and cache invalidation',async()=>{
     const p=record('',{code:'public static String execute(String input) { return input.trim(); }',methodName:'execute'});
     assert.equal((await execute(p)).text,'hello 你好 👋');p.code=p.code.replace('input.trim()','"changed"');assert.equal((await execute(p)).text,'changed');

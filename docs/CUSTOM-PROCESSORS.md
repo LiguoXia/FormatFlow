@@ -1,4 +1,6 @@
-# 自定义文本处理使用指南（1.3）
+# 自定义文本处理使用指南（1.4）
+
+macOS 的快捷键使用 ⌘，例如 ⌘6 打开自定义处理。Windows 使用 Ctrl。
 
 ## 快速开始
 
@@ -22,7 +24,11 @@ public static String process(String input) {
 
 程序不附带 JDK，也不会自动安装。仅自定义 Java 功能需要 JDK，JSON、SQL、时间戳和其他内置工具照常工作。
 
-支持完整 **JDK 8–23**，建议安装仍获得更新的 **Temurin JDK 21 x64**。JRE 只有运行环境，不满足编译需求。
+支持完整 **JDK 8–23**，建议安装仍获得更新的 **Temurin JDK 21**。JRE 只有运行环境，不满足编译需求。
+
+macOS：在 [Eclipse Adoptium](https://adoptium.net/temurin/releases/?version=21) 选择 macOS、JDK、PKG；Intel Mac 选 x64，Apple Silicon 选 aarch64。安装后点击「重新检测」。程序自动检查 `/Library/Java/JavaVirtualMachines`、`~/Library/Java/JavaVirtualMachines` 和 `/opt/homebrew` / `/usr/local` 下的 Homebrew JDK，因此从 Finder 启动无需设置 shell 环境变量。若设置了 JAVA_HOME，仍优先使用它。
+
+Windows：
 
 1. 打开 [Eclipse Adoptium](https://adoptium.net/temurin/releases/?version=21)，选择 Windows、x64、JDK、MSI。
 2. 按安装向导安装。可启用安装器提供的 JAVA_HOME 与 PATH 设置，具体见 [官方 Windows 安装说明](https://adoptium.net/en-GB/installation/windows)。
@@ -56,6 +62,10 @@ javac -version
 ## 配置、缓存与缩进
 
 配置位于：
+
+macOS 配置目录为 `~/Library/Application Support/FormatFlow/config`，包含 `custom-processors.json` 与 `settings.json`；缓存为 `~/Library/Caches/FormatFlow/processors`。
+
+Windows：
 
 ```text
 %APPDATA%\FormatFlow\config\custom-processors.json
