@@ -1,0 +1,62 @@
+name: Publish verified build
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: Successful Desktop release run ID
+        required: true
+        type: string
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      BUILD_RUN_ID: ${{ inputs.run_id }}
+    steps:
+      - name: Verify build provenance
+        id: build
+        run: |
+          gh api "repos/$GH_REPO/actions/runs/$BUILD_RUN_ID" > build-run.json
+          node <<'NODE'
+          const fs = require('fs');
+          const run = JSON.parse(fs.readFileSync('build-run.json'));
+          if (run.conclusion !== 'success' || run.path !== '.github/workflows/release.yml' || run.head_repository.full_name !== process.env.GH_REPO) throw new Error('Expected a successful Desktop release run from this repository');
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `sha=${run.head_sha}\n`);
+          NODE
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.build.outputs.sha }}
+      - uses: actions/download-artifact@v4
+        with:
+          run-id: ${{ inputs.run_id }}
+          github-token: ${{ github.token }}
+          pattern: package-*
+          merge-multiple: true
+          path: release
+      - name: Check packages and publish
+        env:
+          BUILD_SHA: ${{ steps.build.outputs.sha }}
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          TAG="v$VERSION"
+          for ARCH in x64 arm64; do
+            test -s "release/FormatFlow-$VERSION-mac-$ARCH.dmg"
+            test -s "release/FormatFlow-$VERSION-mac-$ARCH.zip"
+          done
+          test -s "release/FormatFlow-$VERSION-win-x64.exe"
+          (cd release && sha256sum *.dmg *.zip *.exe > SHA256SUMS.txt)
+          if gh release view "$TAG" --json isDraft > release-state.json 2>/dev/null; then
+            node -e "if (!require('./release-state.json').isDraft) throw new Error('Refusing to replace a published release')"
+          else
+            gh release create "$TAG" --target "$BUILD_SHA" --draft --title "FormatFlow $TAG" --notes-file "docs/RELEASE-$VERSION.md"
+          fi
+          gh release upload "$TAG" release/* --clobber
+          gh release edit "$TAG" --target "$BUILD_SHA" --notes-file "docs/RELEASE-$VERSION.md" --draft=false --latest
