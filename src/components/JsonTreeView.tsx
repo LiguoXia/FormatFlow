@@ -1,3 +1,4 @@
+import { shortcut } from '../lib/platform';
 import { useEffect, useRef, useState } from 'react';
 import { Braces, ChevronDown, ChevronRight, Copy, ListTree } from 'lucide-react';
 import type { TreeRow } from '../core/json';
@@ -21,7 +22,7 @@ export default function JsonTreeView({initial, worker, notify, onSelect, mode}: 
     try { const result = await worker.request<TreeSlice>(action, payload); if (seq === request.current) { setData(result); lastStart.current = result.start; if (scroll.current) scroll.current.scrollTop = 0; } }
     catch { /* The input may have changed while a tree request was in flight. */ }
   }
-  if (!data) return <div className="tree-empty"><div className="empty-icon"><ListTree size={28} strokeWidth={1.4} /></div><h3>从文本，到结构</h3><p>点击「解析」或「格式化」<br />在这里探索 JSON 的每一层</p><span className="small-key">Ctrl + Enter</span></div>;
+  if (!data) return <div className="tree-empty"><div className="empty-icon"><ListTree size={28} strokeWidth={1.4} /></div><h3>从文本，到结构</h3><p>点击「解析」或「格式化」<br />在这里探索 JSON 的每一层</p><span className="small-key">{shortcut("Ctrl + Enter")}</span></div>;
   return <><div className="tree-scroll" ref={scroll} role="tree" aria-label="JSON 结构树" onScroll={async (event) => {
     const start = Math.max(0, Math.floor(event.currentTarget.scrollTop / 34) - 12);
     if (Math.abs(start - lastStart.current) < 10) return;

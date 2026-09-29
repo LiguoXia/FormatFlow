@@ -1,12 +1,18 @@
 # FormatFlow
 
-面向 Windows 的本地文本处理工作台。参考 Apple Human Interface Guidelines 重构界面，采用紧凑侧栏与双栏编辑布局，支持浅色、深色及跟随系统外观，包含五个内置工具和自定义 Java 文本处理扩展。无需账户，不使用远端文本处理服务，不自动保存输入内容；自定义功能代码和缩进设置会保存到用户配置目录。
+面向 Windows 与 macOS（Intel / Apple Silicon）的本地文本处理工作台。参考 Apple Human Interface Guidelines 重构界面，采用紧凑侧栏与双栏编辑布局，支持浅色、深色及跟随系统外观，包含五个内置工具和自定义 Java 文本处理扩展。无需账户，不使用远端文本处理服务，不自动保存输入内容；自定义功能代码和缩进设置会保存到用户配置目录。
 
 ## 直接运行
 
-从 [GitHub 最新发行版](https://github.com/LiguoXia/FormatFlow/releases/latest) 下载 Windows x64 便携版，或直接下载 [1.3.1 EXE](https://github.com/LiguoXia/FormatFlow/releases/download/v1.3.1/FormatFlow-1.3.1-win-x64.exe)。发行页同时提供 SHA-256 校验文件、使用说明和验收记录。
+从 [GitHub 最新发行版](https://github.com/LiguoXia/FormatFlow/releases/latest) 下载 1.4.0：
 
-本地运行：双击 `release/FormatFlow-1.3.1-win-x64.exe`。旧版便携 EXE 保留。
+| 平台 | 下载 |
+| --- | --- |
+| Intel Mac | [macOS x64 DMG](https://github.com/LiguoXia/FormatFlow/releases/download/v1.4.0/FormatFlow-1.4.0-mac-x64.dmg) |
+| Apple Silicon Mac（M 系列） | [macOS ARM64 DMG](https://github.com/LiguoXia/FormatFlow/releases/download/v1.4.0/FormatFlow-1.4.0-mac-arm64.dmg) |
+| Windows x64 | [便携 EXE](https://github.com/LiguoXia/FormatFlow/releases/download/v1.4.0/FormatFlow-1.4.0-win-x64.exe) |
+
+发行页同时提供 macOS ZIP 包与 SHA-256 校验文件。macOS 需要 12 Monterey 或更高版本，打开 DMG 并将应用拖入 Applications。Mac 版使用 ad-hoc 签名，未经过 Apple Developer ID 签名及公证；首次打开被拦截时，请在确认来源后按 [Apple 官方步骤](https://support.apple.com/102445) 使用「隐私与安全性 → 仍要打开」。完整说明见 [1.4.0 发行说明](docs/RELEASE-1.4.0.md)。
 
 内置工具无需额外运行时；自定义 Java 扩展调用系统安装的完整 JDK 8–23（推荐 JDK 21），应用不附带 JDK。没有 JDK 时会显示教程，不影响内置工具。完整说明见 [自定义处理使用指南](docs/CUSTOM-PROCESSORS.md)。
 
@@ -17,6 +23,13 @@
 - 关闭窗口会退出应用；未保存的文本随之清除。不会隐藏到托盘继续保留文本。
 
 ## 功能
+
+### 1.4.0 macOS 支持
+
+- Intel x64 与 Apple Silicon ARM64 原生 DMG/ZIP，复用全部现有工具逻辑。
+- 原生 macOS 窗口按钮、菜单、⌘ 快捷键与全屏。
+- Finder 启动自动查找 JDK；macOS 配置在 `~/Library/Application Support/FormatFlow/config`，缓存在 `~/Library/Caches/FormatFlow/processors`。
+- GitHub Actions 在两种 Mac 架构及 Windows 上构建、测试并发布。
 
 ### 1.3.1 自定义处理内容独立保存
 
@@ -62,6 +75,8 @@
 格式化、粘贴、去转义和清空各自是独立的撤销步骤。切换工具会保留本次运行中的编辑内容。
 
 ## 快捷键
+
+macOS 使用 ⌘ 替代下表的 Ctrl；重做为 ⌘ShiftZ，替换为 ⌘OptionF，全屏也可使用原生菜单的 Control⌘F。
 
 | 操作 | 快捷键 |
 | --- | --- |
@@ -120,7 +135,7 @@ SQL 只做排版与关键字大小写调整，不执行查询，不连接数据�
 
 ## 本地开发
 
-需要 Node.js 22.12+、npm，以及 Windows（打包和桌面验证）。
+需要 Node.js 22.12+、npm，以及对应目标系统（Windows 或 macOS，用于打包和桌面验证）。
 
 ```powershell
 npm ci
@@ -142,6 +157,8 @@ node scripts/custom-no-jdk.mjs # 无 JDK 时的降级与教程
 npm run test:portable # 验证当前版本的单 EXE 解压启动
 npm run test:performance # 1 MB / 10 MB JSON 与 SQL 性能测试
 npm run dist          # 生成 Windows x64 便携 EXE
+npm run dist:mac      # 在 macOS 上生成 x64 / arm64 DMG 和 ZIP
+npm run test:mac      # 在原生架构 Mac 上检查对应打包后的 .app
 ```
 
 `test:desktop`、`test:text`、`test:ui` 和 `test:performance` 运行前需先 `npm run build`，`test:portable` 需先打包。测试需要关闭正在运行的 FormatFlow（单实例应用）；涉及剪贴板的测试会在结束后恢复原有文本。
@@ -154,7 +171,9 @@ npm run test:desktop
 Remove-Item Env:FORMATFLOW_TEST_EXE
 ```
 
-`npm ci` / 打包首次运行需要联网下载开发依赖；最终应用的文本功能不依赖联网。依赖版本锁定在 `package-lock.json`。应用图标已包含，需重新生成时运行 `powershell -ExecutionPolicy Bypass -File scripts/make-icon.ps1`。
+`npm ci` / 打包首次运行需要联网下载开发依赖；最终应用的文本功能不依赖联网。依赖版本锁定在 `package-lock.json`。发布时推送与 package.json 版本一致的 `v*` 标签即可触发 `.github/workflows/release.yml`；手动运行工作流仅构建和上传 artifacts，不发布 Release。macOS 两个架构均测试通过后才会发布。
+
+应用图标已包含，需重新生成时运行 `powershell -ExecutionPolicy Bypass -File scripts/make-icon.ps1`。
 
 ## 结构
 
@@ -188,6 +207,6 @@ Electron + React + TypeScript + Vite + CodeMirror 6。核心库为 jsonc-parser�
 
 实现参考：[Electron 安全指南](https://www.electronjs.org/docs/latest/tutorial/security)、[CodeMirror 文档](https://codemirror.net/docs/)、[SQL Formatter](https://github.com/sql-formatter-org/sql-formatter)。交互参考来自需求中的 [JSON 编辑器](https://www.json.cn/jsonedit/) 与 [时间戳转换](https://tool.lu/timestamp/)。
 
-界面设计参考：[Apple HIG 材质](https://developer.apple.com/design/human-interface-guidelines/materials)、[侧栏](https://developer.apple.com/design/human-interface-guidelines/sidebars)、[排版](https://developer.apple.com/design/human-interface-guidelines/typography)。本应用采用适用于 Windows 的系统字体与 Lucide 图标，并非 macOS 原生控件或 Liquid Glass 原生实现。
+界面设计参考：[Apple HIG 材质](https://developer.apple.com/design/human-interface-guidelines/materials)、[侧栏](https://developer.apple.com/design/human-interface-guidelines/sidebars)、[排版](https://developer.apple.com/design/human-interface-guidelines/typography)。本应用采用系统字体与 Lucide 图标；macOS 使用原生窗口按钮与菜单，内容区域仍由 Electron 渲染。
 
 历史记录、收藏和多标签不包含在此版本中。

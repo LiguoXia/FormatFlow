@@ -12,7 +12,7 @@ const input=()=>page.getByRole('textbox',{name:'自定义输入编辑器',exact:
 const output=()=>page.getByRole('textbox',{name:'自定义结果编辑器',exact:true});
 async function check(name,fn){await fn();checks.push(name);console.log('PASS '+name);}
 async function select(name){await page.locator('.processor-item').filter({hasText:name}).click();}
-async function type(value){await input().click();await page.keyboard.press('Control+a');if(value)await page.keyboard.insertText(value);else await page.keyboard.press('Backspace');}
+async function type(value){await input().click();await page.keyboard.press('ControlOrMeta+a');if(value)await page.keyboard.insertText(value);else await page.keyboard.press('Backspace');}
 async function run(expected){await page.getByRole('button',{name:'执行处理',exact:true}).click();await expect(output()).toHaveText(expected,{timeout:20000});}
 try{
   await page.getByRole('heading',{name:'JSON 工作台'}).waitFor();
@@ -34,7 +34,7 @@ try{
   });
   await check('Reloading processor list and visiting another tool preserve sessions',async()=>{
     await page.getByRole('button',{name:'重新加载',exact:true}).click();await expect(output()).toHaveText('B:beta');
-    await page.keyboard.press('Control+1');await page.keyboard.press('Control+6');await expect(input()).toHaveText('beta');await expect(output()).toHaveText('B:beta');
+    await page.keyboard.press('ControlOrMeta+1');await page.keyboard.press('ControlOrMeta+6');await expect(input()).toHaveText('beta');await expect(output()).toHaveText('B:beta');
   });
   await check('Editing and clearing one input do not affect other processors',async()=>{
     await type('unsent');await expect(output()).toHaveText('');await select('功能 A');await expect(output()).toHaveText('ALPHA 中文LAST LINE');

@@ -5,6 +5,7 @@ const request = async (channel, ...args) => {
   return result.value;
 };
 contextBridge.exposeInMainWorld('desktop', {
+  platform: process.platform,
   windowAction: (action) => ipcRenderer.invoke('window:action', action),
   getWindowState: () => ipcRenderer.invoke('window:state'),
   onWindowState: (callback) => { const listener = (_event, state) => callback(state); ipcRenderer.on('window:state', listener); return () => ipcRenderer.removeListener('window:state', listener); },

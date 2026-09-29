@@ -91,6 +91,17 @@ class CustomManager {
     const suffix=process.platform==='win32'?'.exe':'';
     const candidates=[];
     if(process.env.JAVA_HOME)candidates.push(path.join(process.env.JAVA_HOME,'bin'));
+    // Finder launches do not inherit shell JAVA_HOME/PATH. Inspect installed JDKs
+    // directly, including older compatible JDKs when the system default is 24+.
+    if(process.platform==='darwin') {
+      for(const folder of ['/Library/Java/JavaVirtualMachines',path.join(require('node:os').homedir(),'Library/Java/JavaVirtualMachines')]) {
+        const entries=await fs.readdir(folder,{withFileTypes:true}).catch(()=>[]);
+        for(const entry of entries) if(entry.isDirectory() || entry.isSymbolicLink()) candidates.push(path.join(folder,entry.name,'Contents','Home','bin'));
+      }
+      for(const prefix of ['/opt/homebrew','/usr/local']) {
+        for(const name of ['openjdk@21','openjdk@17','openjdk@11','openjdk']) candidates.push(path.join(prefix,'opt',name,'libexec','openjdk.jdk','Contents','Home','bin'));
+      }
+    }
     for(const folder of (process.env.PATH||process.env.Path||'').split(path.delimiter)) if(folder)candidates.push(folder.replace(/^"|"$/g,''));
     const failures=[];
     for(const bin of [...new Set(candidates)]) {

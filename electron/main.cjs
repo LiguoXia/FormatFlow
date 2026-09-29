@@ -2,16 +2,22 @@ const { app, BrowserWindow, ipcMain, Menu, clipboard, session } = require('elect
 const path = require('node:path');
 const { installCustom } = require('./custom/ipc.cjs');
 let mainWindow;
+const isMac = process.platform === 'darwin';
 const devUrl = !app.isPackaged && process.env.FORMATFLOW_DEV_URL;
 const validSender = (event) => event.sender === mainWindow?.webContents && event.senderFrame === mainWindow.webContents.mainFrame;
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1320, height: 860, minWidth: 940, minHeight: 640,
-    title: 'FormatFlow', backgroundColor: '#f7f8fa', frame: false, show: false,
-    icon: path.join(__dirname, '../build/icon.ico'),
+    title: 'FormatFlow', backgroundColor: '#f7f8fa', frame: isMac, show: false,
+    ...(isMac ? {titleBarStyle: 'hiddenInset', trafficLightPosition: {x: 16, y: 13}} : {icon: path.join(__dirname, '../build/icon.ico')}),
     webPreferences: { preload: path.join(__dirname, 'preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true, spellcheck: false }
   });
-  Menu.setApplicationMenu(null);
+  Menu.setApplicationMenu(isMac ? Menu.buildFromTemplate([
+    {role: 'appMenu'},
+    {role: 'editMenu'},
+    {label: '显示', submenu: [{role: 'togglefullscreen'}]},
+    {role: 'windowMenu'}
+  ]) : null);
   mainWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   mainWindow.webContents.on('will-navigate', (event) => event.preventDefault());
   // On Windows these events may fire before isFullScreen()/isMaximized() updates.

@@ -2,7 +2,7 @@ Add-Type -AssemblyName System.Drawing
 $taskRoot = Split-Path $PSScriptRoot -Parent
 $taskOutput = Join-Path $taskRoot 'build'
 New-Item -ItemType Directory -Force -Path $taskOutput | Out-Null
-$taskSizes = @(16, 24, 32, 48, 64, 128, 256)
+$taskSizes = @(16, 24, 32, 48, 64, 128, 256, 512, 1024)
 $taskImages = @()
 foreach ($taskSize in $taskSizes) {
     $taskBitmap = [System.Drawing.Bitmap]::new($taskSize, $taskSize)
@@ -27,10 +27,11 @@ foreach ($taskSize in $taskSizes) {
     $taskGraphics.DrawLine($taskPen, 143, 70, 113, 187)
     $taskStream = [System.IO.MemoryStream]::new()
     $taskBitmap.Save($taskStream, [System.Drawing.Imaging.ImageFormat]::Png)
-    $taskImages += ,$taskStream.ToArray()
-    if ($taskSize -eq 256) { $taskBitmap.Save((Join-Path $taskOutput 'icon.png'), [System.Drawing.Imaging.ImageFormat]::Png) }
+    if ($taskSize -le 256) { $taskImages += ,$taskStream.ToArray() }
+    if ($taskSize -eq 1024) { $taskBitmap.Save((Join-Path $taskOutput 'icon.png'), [System.Drawing.Imaging.ImageFormat]::Png) }
     $taskStream.Dispose(); $taskGraphics.Dispose(); $taskBitmap.Dispose(); $taskShape.Dispose(); $taskBrush.Dispose(); $taskPen.Dispose()
 }
+$taskSizes = @($taskSizes | Where-Object { $_ -le 256 })
 $taskIcon = [System.IO.BinaryWriter]::new([System.IO.File]::Create((Join-Path $taskOutput 'icon.ico')))
 $taskIcon.Write([uint16]0); $taskIcon.Write([uint16]1); $taskIcon.Write([uint16]$taskSizes.Length)
 $taskOffset = 6 + 16 * $taskSizes.Length

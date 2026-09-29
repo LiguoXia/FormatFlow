@@ -1,3 +1,4 @@
+import { shortcut } from '../lib/platform';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { AlertCircle, Check, Clipboard, Copy, LoaderCircle, Trash2, X } from 'lucide-react';
 import { ToolWorker, type ToolError } from '../lib/worker';
@@ -22,7 +23,7 @@ export function ActionButton({children, busy, ...props}: React.ButtonHTMLAttribu
   return <button {...props} className={`button primary ${props.className ?? ''}`} disabled={props.disabled || busy}>{busy ? <LoaderCircle size={15} className="spin" /> : null}{children}</button>;
 }
 export function SharedActions({text, onClear, onPaste, notify}: {text: string; onClear(): void; onPaste?(text: string): void; notify: Notify}) {
-  return <div className="shared-actions">{onPaste && <button className="button" onClick={async () => { try { onPaste(await pasteText()); } catch { notify('无法读取剪贴板，请使用 Ctrl + V'); } }}><Clipboard size={14} />粘贴</button>}<button className="button" onClick={onClear} disabled={!text}><Trash2 size={14} />清空</button><button className="button" onClick={async () => { try { await copyText(text); notify('已复制'); } catch { notify('复制失败，请选择文本后按 Ctrl + C'); } }} disabled={!text}><Copy size={14} />复制</button></div>;
+  return <div className="shared-actions">{onPaste && <button className="button" onClick={async () => { try { onPaste(await pasteText()); } catch { notify(shortcut('无法读取剪贴板，请使用 Ctrl + V')); } }}><Clipboard size={14} />粘贴</button>}<button className="button" onClick={onClear} disabled={!text}><Trash2 size={14} />清空</button><button className="button" onClick={async () => { try { await copyText(text); notify('已复制'); } catch { notify(shortcut('复制失败，请选择文本后按 Ctrl + C')); } }} disabled={!text}><Copy size={14} />复制</button></div>;
 }
 export function CopyButton({value, notify, label = '复制'}: {value: string; notify: Notify; label?: string}) {
   return <button className="icon-button" aria-label={label} title={label} onClick={async () => { try { await copyText(value); notify('已复制'); } catch { notify('复制失败'); } }} disabled={!value}><Copy size={14} /></button>;

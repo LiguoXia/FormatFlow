@@ -1,3 +1,4 @@
+import { isMac, modifier, shortcut } from './lib/platform';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { ArrowLeftRight, Braces, Clock3, Code2, Database, Keyboard, LockKeyhole, Maximize2, Minus, PanelsTopLeft, Square, TextCursorInput, X } from 'lucide-react';
 import JsonPage from './pages/JsonPage';
@@ -37,9 +38,9 @@ function ShortcutGuide({onClose}: {onClose(): void}) {
     <h2 id="help-heading">快捷键指南</h2><p>让常用操作，更顺手。</p>
     {[
       ['格式化 / 转换', 'Ctrl + Enter'], ['切换工具', 'Ctrl + 1 / 2 / 3 / 4 / 5 / 6'],
-      ['查找 / 替换', 'Ctrl + F / Ctrl + H'], ['撤销 / 重做', 'Ctrl + Z / Ctrl + Y'],
+      ['查找 / 替换', isMac ? '⌘ + F / ⌘ + ⌥ + F' : 'Ctrl + F / Ctrl + H'], ['撤销 / 重做', isMac ? '⌘ + Z / ⌘ + Shift + Z' : 'Ctrl + Z / Ctrl + Y'],
       ['全选 / 复制 / 粘贴 / 剪切', 'Ctrl + A / C / V / X'], ['全屏 / 退出全屏', 'F11 / Esc'], ['快捷键指南', 'Ctrl + /']
-    ].map(([label, keys]) => <div className="shortcut-row" key={label}><span>{label}</span><kbd>{keys}</kbd></div>)}
+    ].map(([label, keys]) => <div className="shortcut-row" key={label}><span>{label}</span><kbd>{shortcut(keys)}</kbd></div>)}
     <div className="help-tip"><Maximize2 size={14} />双击标题栏最大化，拖动面板间隔调整比例。</div>
   </dialog>;
 }
@@ -71,7 +72,7 @@ export default function App() {
         if (window.desktop) void window.desktop.windowAction('exit-fullscreen');
         else if (document.fullscreenElement) { void document.exitFullscreen(); setWindowState((v) => ({...v, fullscreen: false})); }
       }
-      if (event.ctrlKey && event.key === '/') { event.preventDefault(); setHelp((value) => !value); return; }
+      if ((isMac ? event.metaKey : event.ctrlKey) && event.key === '/') { event.preventDefault(); setHelp((value) => !value); return; }
       if (help) return;
       if ((event.ctrlKey || event.metaKey) && /^[1-6]$/.test(event.key)) {
         event.preventDefault(); changeTool(navigation[Number(event.key) - 1].id);
@@ -84,13 +85,13 @@ export default function App() {
   const current = navigation.find((item) => item.id === active)!;
   const pages = {json: <JsonPage notify={notify} />, sql: <SqlPage notify={notify} />, timestamp: <TimestampPage notify={notify} />, config: <ConfigPage notify={notify} />, text: <TextPage notify={notify} />, custom: <CustomPage notify={notify} />};
 
-  return <div className={`app ${windowState.fullscreen ? 'is-fullscreen' : ''}`}>
+  return <div className={`app ${isMac ? 'is-mac' : ''} ${windowState.fullscreen ? 'is-fullscreen' : ''}`}>
     <div className="titlebar">
       <div className="titlebar-brand"><Code2 size={16} /><span>FormatFlow</span></div>
       <span className="titlebar-caption">{current.label}</span>
       <div className="window-controls">
         <button aria-label="切换全屏" aria-pressed={windowState.fullscreen} title={windowState.fullscreen ? '退出全屏 · Esc / F11' : '进入全屏 · F11'} onClick={fullscreen}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" data-direction={windowState.fullscreen?'inward':'outward'}>{windowState.fullscreen?<><path d="M3 3l6 6M9 3v6H3"/><path d="M21 21l-6-6M15 21v-6h6"/></>:<><path d="M9 9L3 3M3 9V3h6"/><path d="M15 15l6 6M21 15v6h-6"/></>}</svg></button>
-        {window.desktop && <>
+        {window.desktop && !isMac && <>
           <button aria-label="最小化" title="最小化" onClick={() => window.desktop!.windowAction('minimize')}><Minus size={15} /></button>
           <button aria-label="最大化或还原" title="最大化或还原" onClick={() => window.desktop!.windowAction('maximize')}>{windowState.maximized ? <PanelsTopLeft size={13} /> : <Square size={12} />}</button>
           <button className="window-close" aria-label="关闭窗口" title="关闭窗口" onClick={() => window.desktop!.windowAction('close')}><X size={16} /></button>
@@ -103,20 +104,20 @@ export default function App() {
         <div className="sidebar-label nav-heading">工具</div>
         <nav aria-label="工具导航">{navigation.map((item, index) => {
           const Icon = item.icon;
-          return <button key={item.id} className={`nav-item ${active === item.id ? 'selected' : ''}`} aria-current={active === item.id ? 'page' : undefined} onClick={() => changeTool(item.id)} title={`${item.sub} · Ctrl + ${index + 1}`}>
+          return <button key={item.id} className={`nav-item ${active === item.id ? 'selected' : ''}`} aria-current={active === item.id ? 'page' : undefined} onClick={() => changeTool(item.id)} title={`${item.sub} · ${modifier} + ${index + 1}`}>
             <Icon className="nav-icon" size={18} strokeWidth={1.8} /><span className="nav-text">{item.label}</span><span className="nav-number" aria-hidden="true">{index + 1}</span>
           </button>;
         })}</nav>
         <div className="sidebar-bottom">
           <AppearanceControl />
-          <button className="shortcut-button" onClick={() => setHelp(true)}><Keyboard size={17} /><span>快捷键指南</span><kbd>Ctrl /</kbd></button>
+          <button className="shortcut-button" onClick={() => setHelp(true)}><Keyboard size={17} /><span>快捷键指南</span><kbd>{shortcut("Ctrl /")}</kbd></button>
           <div className="privacy-note"><LockKeyhole size={13} /><span>仅在本地处理</span></div>
           <div className="sidebar-version">版本 {appVersion}</div>
         </div>
       </aside>
       <main aria-label={current.label}>{navigation.filter((item) => visited.has(item.id)).map((item) => <div key={item.id} className="page-slot" hidden={active !== item.id}>{pages[item.id]}</div>)}</main>
     </div>
-    <footer className="app-footer"><span><span className="status-dot" />文本不上传、不自动保存</span><span>Ctrl + Enter 快速处理<span className="footer-dot">·</span>F11 全屏</span></footer>
+    <footer className="app-footer"><span><span className="status-dot" />文本不上传、不自动保存</span><span>{shortcut("Ctrl + Enter 快速处理")}<span className="footer-dot">·</span>F11 全屏</span></footer>
     <Toast key={toast.id} message={toast.message} onClose={closeToast} />
     {help && <ShortcutGuide onClose={() => setHelp(false)} />}
   </div>;

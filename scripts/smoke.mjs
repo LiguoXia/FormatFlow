@@ -1,11 +1,12 @@
 import { _electron as electron, expect } from '@playwright/test';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 const root = process.cwd();
 await mkdir('test-results', {recursive: true});
-const env = {...process.env}; delete env.ELECTRON_RUN_AS_NODE;
+const data = await mkdtemp(path.resolve('test-results/desktop-'));
+const env = {...process.env, FORMATFLOW_TEST_DATA: data}; delete env.ELECTRON_RUN_AS_NODE;
 const app = await electron.launch({
-  ...(process.env.FORMATFLOW_TEST_EXE ? {executablePath: process.env.FORMATFLOW_TEST_EXE, args: []} : {args: [root]}),
+  ...(process.env.FORMATFLOW_TEST_EXE ? {executablePath: process.env.FORMATFLOW_TEST_EXE, args: [`--user-data-dir=${path.join(data,'browser')}`]} : {args: [root, `--user-data-dir=${path.join(data,'browser')}`]}),
   env, timeout: 30000
 });
 const page = await app.firstWindow();
@@ -17,7 +18,7 @@ const start = Date.now();
 async function check(name, fn) { const before = Date.now(); await fn(); report.push({name, ms: Date.now() - before}); console.log(`PASS ${name}`); }
 const active = () => page.locator('.page-slot:not([hidden])');
 const editor = (label) => page.getByRole('textbox', {name: label});
-async function setEditor(label, text) { const field = editor(label); await field.click(); await page.keyboard.press('Control+a'); await page.keyboard.insertText(text); }
+async function setEditor(label, text) { const field = editor(label); await field.click(); await page.keyboard.press('ControlOrMeta+a'); await page.keyboard.insertText(text); }
 try {
   await page.getByRole('heading', {name: 'JSON 工作台'}).waitFor();
   await page.getByRole('button', {name: '浅色外观', exact: true}).click();
@@ -38,11 +39,11 @@ try {
   });
   await check('Invalid JSON reports coordinates and recovers', async () => {
     await setEditor('JSON 编辑器', '{\n "bad": }');
-    await page.getByRole('button', {name: /^格式化 Ctrl/}).click();
+    await page.getByRole('button', {name: /^格式化 (?:Ctrl|⌘)/}).click();
     await expect(page.getByRole('alert')).toContainText('Line 2');
     await page.getByRole('button', {name: '定位错误'}).click();
     await setEditor('JSON 编辑器', '{"id":900719925474099312345,"enabled":true}');
-    await page.keyboard.press('Control+Enter');
+    await page.keyboard.press('ControlOrMeta+Enter');
     await expect(active().locator('.valid-badge')).toContainText('有效 JSON');
     await expect(editor('JSON 编辑器')).toContainText('900719925474099312345');
     await page.getByRole('combobox', {name: 'JSON 缩进'}).selectOption('4');
@@ -58,22 +59,22 @@ try {
     await expect(editor('JSON 编辑器')).toContainText('pasted');
     await active().getByRole('button', {name: '清空', exact: true}).click();
     await expect(editor('JSON 编辑器')).toHaveText('');
-    await editor('JSON 编辑器').click(); await page.keyboard.press('Control+z');
+    await editor('JSON 编辑器').click(); await page.keyboard.press('ControlOrMeta+z');
     await expect(editor('JSON 编辑器')).toContainText('pasted');
   });
   await check('SQL formatting and language switch', async () => {
-    await page.keyboard.press('Control+2');
+    await page.keyboard.press('ControlOrMeta+2');
     await page.getByRole('button', {name: /^格式化 SQL/}).click();
     await expect(editor('SQL 编辑器')).toContainText('SELECT');
     await expect(editor('SQL 编辑器')).toContainText('LEFT JOIN');
     await page.getByRole('combobox', {name: 'SQL 方言'}).selectOption('postgresql');
     await setEditor('SQL 编辑器', 'select id::text from users where id = $1;');
-    await page.keyboard.press('Control+Enter');
+    await page.keyboard.press('ControlOrMeta+Enter');
     await expect(active().locator('.valid-badge')).toContainText('已格式化');
     await page.screenshot({path: 'test-results/sql.png'});
   });
   await check('Timestamp conversions and timezone updates', async () => {
-    await page.keyboard.press('Control+3');
+    await page.keyboard.press('ControlOrMeta+3');
     await page.getByRole('combobox', {name: '时区', exact: true}).selectOption('UTC');
     await page.getByRole('textbox', {name: '输入时间戳', exact: true}).fill('0');
     await page.getByRole('button', {name: '转换为日期时间', exact: true}).click();
@@ -88,7 +89,7 @@ try {
     await page.screenshot({path: 'test-results/timestamp.png'});
   });
   await check('Configuration bidirectional conversion', async () => {
-    await page.keyboard.press('Control+4');
+    await page.keyboard.press('ControlOrMeta+4');
     await page.getByRole('button', {name: '转换', exact: true}).click();
     await expect(editor('配置输出编辑器')).toContainText('port: 8080');
     await expect(editor('配置输出编辑器').locator('.yaml-number').first()).toBeVisible();
@@ -104,7 +105,7 @@ try {
     await page.screenshot({path: 'test-results/config.png'});
   });
   await check('Cancel keeps input, and clearing invalidates in-flight output', async () => {
-    await page.keyboard.press('Control+2');
+    await page.keyboard.press('ControlOrMeta+2');
     await app.evaluate(({clipboard}) => clipboard.writeText("select id, name from users where id > 1;\n".repeat(15000)));
     await active().getByRole('button', {name: '粘贴', exact: true}).click();
     await expect(active().locator('.editor-status').first()).toContainText('615,000');
@@ -123,16 +124,16 @@ try {
     await app.evaluate(({BrowserWindow}) => BrowserWindow.getAllWindows()[0].setSize(940, 640));
     await expect.poll(() => page.evaluate(() => window.innerWidth)).toBe(940);
     for (const key of ['1', '2', '3', '4']) {
-      await page.keyboard.press(`Control+${key}`);
+      await page.keyboard.press(`ControlOrMeta+${key}`);
       const layout = await active().evaluate((el) => {
         const root = el.getBoundingClientRect();
         return [...el.querySelectorAll('button,select,input,.panel')].filter((n) => n.getClientRects().length && !n.closest('.cm-editor') && !n.closest('.tree-scroll') && !n.closest('.timestamp-scroll')).map((n) => ({name: n.textContent, rect: n.getBoundingClientRect()})).filter(({rect}) => rect.right > root.right + 1 || rect.left < root.left - 1);
       });
       expect(layout).toEqual([]);
     }
-    await page.keyboard.press('Control+1');
+    await page.keyboard.press('ControlOrMeta+1');
     await page.getByRole('button', {name: '载入示例', exact: true}).first().click();
-    await page.getByRole('button', {name: /^格式化 Ctrl/}).click();
+    await page.getByRole('button', {name: /^格式化 (?:Ctrl|⌘)/}).click();
     await expect(active().locator('.valid-badge')).toContainText('有效 JSON');
     const separator = active().getByRole('separator');
     await separator.focus(); await page.keyboard.press('ArrowLeft');

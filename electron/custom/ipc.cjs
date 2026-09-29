@@ -5,7 +5,9 @@ const {CustomManager} = require('./manager.cjs');
 function installCustom({app, ipcMain, validSender, getWindow}) {
   const testRoot = !app.isPackaged && process.env.FORMATFLOW_TEST_DATA;
   const root = testRoot || path.join(app.getPath('appData'),'FormatFlow');
-  const cache = testRoot ? path.join(testRoot,'processors') : path.join(process.env.LOCALAPPDATA || app.getPath('userData'),'FormatFlow','processors');
+  const cache = testRoot ? path.join(testRoot,'processors') : process.platform === 'darwin'
+    ? path.join(app.getPath('home'),'Library','Caches','FormatFlow','processors')
+    : path.join(process.env.LOCALAPPDATA || app.getPath('userData'),'FormatFlow','processors');
   const manager = new CustomManager(root,cache);
   const ready = manager.init();
   ready.then(() => manager.list()).catch(() => {});

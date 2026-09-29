@@ -9,15 +9,15 @@ const page=await app.firstWindow();
 const checks=[],errors=[];page.on('pageerror',e=>errors.push(e.message));
 async function check(name,fn){await fn();checks.push(name);console.log('PASS '+name);}
 const active=()=>page.locator('.page-slot:not([hidden])');
-async function code(value){const field=page.getByRole('textbox',{name:'Java 代码编辑器',exact:true});await field.click();await page.keyboard.press('Control+a');await page.keyboard.insertText(value);}
+async function code(value){const field=page.getByRole('textbox',{name:'Java 代码编辑器',exact:true});await field.click();await page.keyboard.press('ControlOrMeta+a');await page.keyboard.insertText(value);}
 try {
  await page.getByRole('heading',{name:'JSON 工作台'}).waitFor();
  await check('Persistent JSON/SQL indentation across reload',async()=>{
-   await page.getByRole('combobox',{name:'JSON 缩进'}).selectOption('4');await page.keyboard.press('Control+2');await page.getByRole('combobox',{name:'SQL 缩进'}).selectOption('4');
+   await page.getByRole('combobox',{name:'JSON 缩进'}).selectOption('4');await page.keyboard.press('ControlOrMeta+2');await page.getByRole('combobox',{name:'SQL 缩进'}).selectOption('4');
    await expect.poll(async()=>JSON.parse(await readFile(path.join(data,'config/settings.json'),'utf8')).sqlIndent).toBe(4);
-   await page.reload();await expect(page.getByRole('combobox',{name:'JSON 缩进'})).toHaveValue('4');await page.keyboard.press('Control+2');await expect(page.getByRole('combobox',{name:'SQL 缩进'})).toHaveValue('4');
+   await page.reload();await expect(page.getByRole('combobox',{name:'JSON 缩进'})).toHaveValue('4');await page.keyboard.press('ControlOrMeta+2');await expect(page.getByRole('combobox',{name:'SQL 缩进'})).toHaveValue('4');
  });
- await page.keyboard.press('Control+6');
+ await page.keyboard.press('ControlOrMeta+6');
  await check('New Java processor, editor syntax, test and save',async()=>{
    await expect(page.locator('.custom-environment')).toContainText('已就绪',{timeout:15000});
    await page.getByRole('button',{name:'新增功能',exact:true}).click();await page.getByRole('textbox',{name:'功能名称',exact:true}).fill('自定义大写');

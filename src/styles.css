@@ -295,3 +295,6 @@ select { min-height: 30px; padding: 0 8px; border-radius: 6px; background-color:
 .jdk-guide ol { padding-left: 20px; }
 .config-path { overflow-wrap: anywhere; }
 @media (max-width: 1120px) { .processor-list { flex-basis: 150px; } .custom-workspace { gap: 10px; } .custom-edit-actions .checkbox-label { margin-left: 0; } }
+
+.is-mac .titlebar-brand { padding-left: 90px; }
+.is-mac.is-fullscreen .titlebar-brand { padding-left: 20px; }
